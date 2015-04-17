@@ -1,11 +1,21 @@
 <?php
 //connecting to the Database
+class Database{
+	private static $_DB_HOST = 'nova.umuc.edu';
+	private static $_DB_NAME = 'ct463b14';
+	private static $_DB_USER = 'ct463b14';
+	private static $_DB_PASSWORD = 'e4y4p5h9';
+	protected static $_connection = NULL;
 
-define('DB_HOST', 'nova.umuc.edu');
-define('DB_NAME', 'ct463b14');
-define('DB_USER', 'ct463b14');
-define('DB_PASSWORD', 'e4y4p5h9');
+	public static function getConnection() {
+		if(!self::$_connection){
+			self::$_connection = new mysqli(self::$_DB_HOST,self::$_DB_USER,self::$_DB_PASSWORD, self::$_DB_NAME);
+			if (self::$_connection->connect_error){
+				die('Connect Error: '. self::$_connection->connect_error);
+			}
+		}
+		return self::$_connection;
+	}
 
-if ($connection = @new mysqli(DB_HOST,DB_USER,DB_PASSWORD, DB_PASSWORD)){
-	echo "Successful connection to MySQL";
+	private function __construct(){	}
 }

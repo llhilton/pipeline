@@ -11,7 +11,7 @@
  * @since      Since Release 1.0
  */
 
-require_once('includes/classes/connectw.php');
+require_once('includes/classes/connecti.php');
 require_once('includes/classes/watson.php');
 
 $connection = Database::getConnection();
