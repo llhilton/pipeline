@@ -1,10 +1,11 @@
 <?php
 // http://coyotelab.org/php/upload-csv-and-insert-into-database-using-phpmysql.html
-	$db = mysql_connect("Database", "username", "password") or die("Could not connect.");
+/*	$db = mysql_connect("Database", "username", "password") or die("Could not connect.");
 	if(!$db) 
 	    die("no db");
 	if(!mysql_select_db("Databasename",$db))
 	    die("No database selected.");
+	    */
 	    ?>
 	<html>
 	<head>
@@ -51,26 +52,54 @@
 	mysql_query($deleterecords);
 	//Upload File
 	if (isset($_POST['submit'])) {
-	    if (is_uploaded_file($_FILES['filename']['tmp_name'])) {
-	        echo "<h1>" . "File ". $_FILES['filename']['name'] ." uploaded successfully." . "</h1>";
-	        echo "<h2>Displaying contents:</h2>";
-	        readfile($_FILES['filename']['tmp_name']);
+ 	    if (is_uploaded_file($_FILES['filename']['tmp_name'])) {
+ 	        echo "<h1>" . "File ". $_FILES['filename']['name'] ." uploaded successfully." . "</h1>";
+ 	        echo "<h2>Displaying contents:</h2>";
+			//is the file .csv?
+			$temp = explode(".", $_FILES["filename"]["name"]);
+			if ($temp[1] == 'csv'){
+				echo "<h2>Yes it's a csv file.</h2>";
+			}else{
+				die("Wrong file type");
+			}
+			if (strtolower($temp[0]) == "impromptu" || strtolower($temp[0]) == "watson" || strtolower($temp[0]) == "history" ){ //Remove the history one after done testing.
+				echo "<h2>Right file name.</h2>";
+			} else{
+				die("Wrong file name");
+			}
+	        //readfile($_FILES['filename']['tmp_name']);
+ 	    }
+ 
+ 	    //Import uploaded file to Database
+ 	    $handle = fopen($_FILES['filename']['tmp_name'], "r");
+		fgetcsv($handle, 0, ","); // skip the first row of data, which will be headers
+	    while (($data = fgetcsv($handle, 0, ",")) !== FALSE) {
+			//think we should explode the string on input, to make it easier to have the short award number and other info easily accessible.
+			$stringexplode=explode(".",$data[0]);
+			$agreement = $stringexplode[0];
+			$typeofaward = $stringexplode[1];
+			$fy = $stringexplode[2];
+			$program = $stringexplode[3];
+			$shortawardnumber = $stringexplode[6];
+			echo $shortawardnumber;
+			
+			//Need to convert the date format for watson projects
+			$data[1] = date('Y-m-d',strtotime($data[1]));
+			
+			$data[2] = filter_var($data[2],FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION); // Sanitize values for the impromptu amount
+			print_r($data);
+	        //$import="INSERT into tablename(item1,item2,item3,item4,item5) values('$data[0]','$data[1]','$data[2]','$data[3]','$data[4]')";
+			//echo $import;
+	  //      mysql_query($import) or die(mysql_error());
+ 	    fclose($handle);
+ 	    print "Import done";
+ 	    //view upload form
 	    }
-
-	    //Import uploaded file to Database
-	    $handle = fopen($_FILES['filename']['tmp_name'], "r");
-	    while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-	        $import="INSERT into tablename(item1,item2,item3,item4,item5) values('$data[0]','$data[1]','$data[2]','$data[3]','$data[4]')";
-	        mysql_query($import) or die(mysql_error());
-	    }
-	    fclose($handle);
-	    print "Import done";
-	    //view upload form
-	}else {
-	    print "Upload new csv by browsing to file and clicking on Upload<br />\n";
+ 	}else {
+ 	    print "Upload new csv by browsing to file and clicking on Upload<br />\n";
 	    print "<form enctype='multipart/form-data' action='upload.php' method='post'>";
-	    print "File name to import:<br />\n";
-	    print "<input size='50' type='file' name='filename'><br />\n";
+ 	    print "File name to import:<br />\n";
+ 	    print "<input size='50' type='file' name='filename'><br />\n";
 	    print "<input type='submit' name='submit' value='Upload'></form>";
 	}
 	?>
