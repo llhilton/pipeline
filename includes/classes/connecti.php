@@ -45,7 +45,7 @@ class Database{
 		$result_obj=$connection->query($query);
 		try{
 			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
-				$items[]=$result;
+				$items[$result['idproject']]=$result;
 			}
 			return($items);
 		}
@@ -139,6 +139,7 @@ class Database{
 		}
 	}
 	
+	//Get projects and their funding sources.
 	static function getProjectsFunding(){
 		$connection = Database::getConnection();
 		$query="SELECT * FROM project_funded AS a LEFT JOIN fundingsource ON a.FundingSource_idFundingSource=idFundingSource";
@@ -153,5 +154,19 @@ class Database{
 		catch(Exception $e){
 			return false;
 		}	
+	}
+	
+	static function getNumberSources(){
+		$connection = Database::getConnection();
+		$item="";
+		$query = "SELECT COUNT(*) FROM fundingsource";
+		$result_obj=$connection->query($query);
+		try{
+			$item = $result_obj->fetch_array(MYSQL_NUM);
+			return $item[0];
+		}
+		catch(Exception $e){
+			return false;
+		}
 	}
 }
