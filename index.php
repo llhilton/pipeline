@@ -1,12 +1,12 @@
 <?php
 /**
- * index.php
+ * summary.php
  *
- * Main file
+ * Summary of funding file
  *
  * @version    0.1 2015-04-15
- * @package    Smithside Auctions
- * @copyright  Copyright (c) 2011 Smithside Auctions
+ * @package    BEP Pipeline
+ * @copyright  Copyright (c) 2015 Lisa Hilton
  * @license    GNU General Public License
  * @since      Since Release 1.0
  */
