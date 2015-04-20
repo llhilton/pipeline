@@ -16,8 +16,8 @@ function displayProjectsTableHeading(){?>
 		echo "</th>";
 	}
 	?>
-	<th>Task number</th>
-	<th>Unique ID</th>
+	<!-- <th>Task number</th>
+	<th>Unique ID</th> -->
 	<th>Notes</th>
 	</tr>
 <?php 
@@ -42,6 +42,7 @@ function addfundingform($idproject){
 	echo '</form>';
 }
 
+//add funding to a project
 function addfunding($idproject, $fundstoadd){
 	$i=0;
 	foreach ($fundstoadd as $key=>$value){
@@ -49,15 +50,6 @@ function addfunding($idproject, $fundstoadd){
 	}
 	$results=Database::addFundingToProject($idproject,$toadd);
 	echo '<a href="projects.php?idproject='.$idproject.'">Return to project.</a>';
-}
-
-//Get where projects have FY10 program funds not yet obligated.
-function getFiscalYearProject($idproject, $fiscalyear,$typefunding){
-	$projectfunding=Database::getProjectFiscalYear($idproject, $fiscalyear,$typefunding);
-	if (is_numeric($projectfunding)){
-		$projectfunding="$".number_format($projectfunding,2);
-	}	
-	return $projectfunding;
 }
 
 //Build an array for each funded project that includes a result for each fiscal year
@@ -69,66 +61,73 @@ function getProjectsFunding(){
 	foreach ($fundingarray as $value){
 		$idproject=$value['project_idproject'];
 		$idprojectsource=$value['FundingSource_idFundingSource'];
-		$projectarray=array('idproject'=>$idproject);
+		$projectarray="";
 		foreach ($fundingsources as $source){
 			$idfundingsource=$source['idFundingSource'];
-			$sourcearray="";
 			if ($idprojectsource==$idfundingsource){
-				$sourcearray=array($idfundingsource=>$value['amount']);
+				$projectarray[$idfundingsource]=$value['amount'];
 			}else{
-				$sourcearray= array($projectarray, $idfundingsource=>"");
+				$projectarray[$idfundingsource]= "";
 			}
-			array_push($projectarray, $sourcearray);
-			print_r($projectarray);
-			echo "<br>";
 		}
-		$newarray[]=$projectarray;
+		$projectarray['idproject']= $idproject;
+		$newarray[$idproject]= $projectarray;
 	}
 	return $newarray;
 }
 
 //Combine the projects and funding-for-projects arrays
 function combineProjectsFunding($projects,$funding){
-	foreach($projects as $project){
-		
-	
-		
+	$newarray="";
+	foreach($projects as $idproject=>$project){
+		$smallarray="";
+		$smallarray=$project;
+		if (array_key_exists($idproject, $funding)){
+			$smallarray['funding']=$funding[$idproject];
+		}else{
+			$smallarray['funding']=NULL;
+		}
+		$newarray[]=$smallarray;
 	}
+	return($newarray);
 }
 
 //Display multiple projects.
 function displayProjects(){
 	$projects_array=Database::getProjects();
 	$projectfunding = getProjectsFunding();
-	$mergedarray = array_merge($projects_array, $projectfunding);
-	print_r($mergedarray);
-	//$combinedprojectsarray = combineProjectsFunding($projects_array,$projectfunding);
+	$mergedarray = combineProjectsFunding($projects_array, $projectfunding);
+	$numbersources = Database::getNumberSources(); //Get the number of possible funding sources.
+//	print_r($mergedarray);
 	echo "<table border=1>";
 	displayProjectsTableHeading();
-	foreach($projects_array as $value){
+	foreach($mergedarray as $key=>$value){
 		echo "<tr>";
-		echo "<td><a href=\"?idproject=" . $value['idproject']. "\">". $value['title'] ."</a></td>";
+		echo "<td><a href=\"?idproject=" . $value['idproject']. "\">". $value['title'] ."</a><br>";
+		if ($value['task_number']<>""){
+			echo "Task Number: " . $value['task_number'] ."<br>";
+		}
+		if ($value['unique_id']<>""){
+			echo "Unique ID: " . $value['unique_id'] ;
+		}
+		echo "</td>";
+		//print_r($value);
+		if (!is_null($value['funding'])){
+			foreach ($value['funding'] as $fkey=>$fvalue){
+				if ($fvalue<>0 && $fkey<>"idproject"){
+					echo "<td>$".number_format($fvalue,2)."</td>";
+				}elseif ($fkey=="idproject"){
+					echo "";
+				}else{
+					echo "<td></td>";
+				}
+			}
+		}else{
+			for($i=0;$i<$numbersources;$i++){
+				echo "<td></td>";
+			}
+		}
 		
-		/*echo "<td>".getFiscalYearProject($value['idproject'], '10','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '10','Impact')."</td>";
-		
-		echo "<td>".getFiscalYearProject($value['idproject'], '11','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '11','Impact')."</td>";
-		
-		echo "<td>".getFiscalYearProject($value['idproject'], '12','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '12','Impact')."</td>";
-		
-		echo "<td>".getFiscalYearProject($value['idproject'], '12-Iraq','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '12-Iraq','Impact')."</td>";
-		
-		echo "<td>".getFiscalYearProject($value['idproject'], '13','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '13','Impact')."</td>";
-		
-		echo "<td>".getFiscalYearProject($value['idproject'], '14','Program')."</td>";
-		echo "<td>".getFiscalYearProject($value['idproject'], '14','Impact')."</td>";*/
-		
-		echo "<td>" . $value['task_number'] ."</td>";
-		echo "<td>" . $value['unique_id'] ."</td>";
 		echo "<td>" . $value['notes'] ."</td>";
 		echo "</tr>";
 	}
