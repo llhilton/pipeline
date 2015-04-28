@@ -54,6 +54,69 @@ class Database{
 		}
 	}
 	
+	static function getProjectsRegions(){
+		$connection=Database::getConnection();
+		$items="";
+		$query = "SELECT project_country.project_idproject, country.region FROM project_country INNER JOIN country on project_country.country_idcountry = country.idcountry";
+		$result_obj=$connection->query($query);
+		try{
+			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+				$items[]=$result;
+			}
+			return($items);
+		}
+		catch(Exception $e){
+			return false;
+		}
+	}
+
+	//Add a new country to the database
+	static function addnewcountry($country, $region){
+		$connection = Database::getConnection();
+		$query="INSERT INTO country VALUES (DEFAULT, '".$country."', '".$region."')";
+		if (!$connection->query($query)){
+			echo "Error :" .$query . "<br>" . $connection->error;
+		}else{
+			echo "Country added successfully.<br>";
+		}
+	}
+
+	//Get a project's funding source(s).
+	static function getProjectFunding($idproject){
+		$connection = Database::getConnection();
+		$query="SELECT p.amount, f.idFundingSource, f.fiscalYear, f.typeOfFunding FROM project_funded AS p INNER JOIN fundingsource AS f ON p.FundingSource_idFundingSource = f.idFundingSource WHERE p.project_idproject = ". $idproject;
+		$items='';
+		$result_obj=$connection->query($query);
+		try{
+			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+				$items[]=$result;
+			}
+			return($items);
+		}
+		catch(Exception $e){
+			return false;
+		}
+	}
+	
+	//Get a project's funding source(s).
+	static function getProjectCountry($idproject){
+		$connection = Database::getConnection();
+		$query="SELECT c.country, c.region, c.idcountry FROM project_country AS p ";
+		$query .= "INNER JOIN country AS c ON p.country_idcountry = c.idcountry WHERE p.project_idproject = ". $idproject;
+		$items='';
+		$result_obj=$connection->query($query);
+		try{
+			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+				$items[]=$result;
+			}
+			return($items);
+		}
+		catch(Exception $e){
+			return false;
+		}
+	}
+	
+	
 	//Get all basic information on a project
 	static function getProject($idproject){
 		$item="";
@@ -63,12 +126,16 @@ class Database{
 		$result_obj=$connection->query($query);
 		try{
 			$item = $result_obj->fetch_array(MYSQL_ASSOC);
+			//Add the project's funding source(s)
+			$item['funding']=Database::getProjectFunding($idproject);
+			$item['countries']=Database::getProjectCountry($idproject);
 			return $item;
 		} 
 		catch(Exception $e){
 			return false;
 		}
 	}
+
 	
 	//Get all possible funding sources for a project.
 	static function getPossibleFundingSources(){
@@ -94,12 +161,72 @@ class Database{
 		foreach ($toadd as $value){
 			$query = "INSERT INTO project_funded VALUES ";
 			$query .= "(DEFAULT,".$value[1].", 0, ".$idproject.",".$value[0].")";
-			if ($connection->query($query)){
-				echo "The funding has been added successfully.";
-			}else{
+			if (!$connection->query($query)){
 				echo "Error :" .$query . "<br>" . $connection->error;
+				die;//This will stop the query. This way, the "Funds added" message won't be a lie.
 			}
 		} 
+		echo "Funds added successfully";
+	}
+	
+	//Add countries to a project.
+	static function addCountryToProject($idproject,$toadd){
+		$connection=Database::getConnection();
+		foreach ($toadd as $value){
+			if ($value[0]<>'addcountry'){
+				$query = "INSERT INTO project_country VALUES ";
+				$query .= "(DEFAULT, ".$idproject.",".$value[0].")";
+				if (!$connection->query($query)){
+					echo "Error :" .$query . "<br>" . $connection->error;
+					die;//This will stop the query. This way, the "Country added" message won't be a lie.
+				}
+			}
+		}
+		echo "Country/Countries added successfully";
+	}
+
+	//Edit the funding for a project
+	static function editFundingForProject($idproject,$fundstoedit){
+		$connection=Database::getConnection();
+		//print_r($fundstoedit);
+		foreach ($fundstoedit as $key=>$value){
+			$keyarray=explode('.',$key);
+			//print_r($keyarray);
+			if ($value==0){
+				$query="DELETE FROM project_funded WHERE FundingSource_idFundingSource = '".$keyarray[0]."' AND project_idproject= '".$idproject."'";
+				if (!$connection->query($query)){
+				 echo "Error :" .$query . "<br>" . $connection->error;
+				 die;//This will stop the query. This way, the "Funds edited" message won't be a lie.
+				 }
+			}else{
+				if ($keyarray[1]=='u'){
+					$query = "UPDATE project_funded ";
+					$query .= "SET amount = '".$value."' WHERE FundingSource_idFundingSource = '".$keyarray[0]."' AND project_idproject= '".$idproject."'";
+					if (!$connection->query($query)){
+				 		echo "Error :" .$query . "<br>" . $connection->error;
+				 		die;//This will stop the query. This way, the "Funds edited" message won't be a lie.
+				 	}
+				} else {
+					$query="INSERT INTO project_funded ";
+					$query .= "VALUES (DEFAULT, '".$value."', '0', '".$idproject."', '".$keyarray[0]."')";
+					if (!$connection->query($query)){
+						echo "Error :" .$query . "<br>" . $connection->error;
+						die;//This will stop the query. This way, the "Funds edited" message won't be a lie.
+					} 
+				}
+			}
+			
+		}
+		echo "Funds edited successfully";
+	}
+	
+	//Delete all countries for a project
+	static function removeCountriesForProject($idproject){
+		$connection=Database::getConnection();
+		$query="DELETE FROM project_country WHERE project_idproject = '".$idproject."'";
+		if (!$connection->query($query)){
+			echo "Error :" .$query . "<br>" . $connection->error;
+		}
 	}
 	
 	//Get the idFundingSource for a given fiscal year and type of funding
@@ -155,7 +282,8 @@ class Database{
 			return false;
 		}	
 	}
-	
+
+	//get the number of possible funding sources
 	static function getNumberSources(){
 		$connection = Database::getConnection();
 		$item="";
@@ -168,5 +296,23 @@ class Database{
 		catch(Exception $e){
 			return false;
 		}
+	}
+	
+	// Get all the countries
+	static function getPossibleCountries(){
+		$connection=Database::getConnection();
+		$query = "SELECT * FROM country ORDER BY country ASC";
+		$items="";
+		$result_obj=$connection->query($query);
+		try{
+			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+				$items[]=$result;
+			}
+			return($items);
+		}
+		catch(Exception $e){
+			return false;
+		}	
+	
 	}
 }
