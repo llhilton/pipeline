@@ -1,7 +1,6 @@
 <?php
 require_once('classes/connecti.php');
 //require_once('classes/html_table.php');
-//$connection = Database::getConnection();
 
 //Display the headings for the table that lists multiple projects. 
 function displayProjectsTableHeading(){?>
@@ -21,6 +20,24 @@ function displayProjectsTableHeading(){?>
 	<th>Notes</th>
 	</tr>
 <?php 
+}
+
+//A form to add subawards to a project
+function addsubawardsform($idproject){
+	$projectinfo=Database::getProject($idproject);
+	echo "<h1>".$projectinfo['title']."</h1>";
+	echo "<p>Select subaward(s)";
+	$subawards=Database::getSubawards();
+	echo '<form action="projects.php?action=addsubawards&idproject='.$idproject.'" method="post">';
+	foreach ($subawards as $subaward){
+		echo '<input id="'.$subaward['shortAwardNumber'].'" name="subaward['.$subaward['shortAwardNumber'].']" type="checkbox">'.$subaward['shortAwardNumber'].': '.$subaward['title'].'<br>';
+	}
+	echo '<input type="submit" name="addsubawards" value="Submit"> <input type="reset" value="Reset">';
+	echo '</form>';
+}
+
+function addsubawards($idproject, $subawards){
+	echo "hi";
 }
 
 //A form to add a new country to the database
@@ -361,6 +378,8 @@ function displayProject($project_array){
 	}else {	
 		echo "<a href=\"projects.php?action=addcountryform&idproject=".$project_array['idproject']."\">Add country</a><br>";
 	}
+	echo "<h2>Subawards</h2>";
+	echo '<a href="projects.php?action=addsubawardsform&idproject='.$project_array['idproject'].'">Add subaward(s)</a><br>';
 }
 
 //Get only those projects from a given region
@@ -421,16 +440,18 @@ function displayProjectsbyRegion($category){
 	echo "</table>";
 }
 
+
 ?>
 <ul>
 	<li><a href="projects.php">Show all projects</a></li>
 	<li><a href="projects.php?category=MENA">Show all MENA projects</a></li>
-	<li><a href="projects.php?category=MENA-Iraq">Show all MENA-Iraq projects</a>
-	<li><a href="projects.php?category=Southeast%20Asia">Show all Southeast Asia projects</a>
-	<li><a href="projects.php?category=Sub-Saharan%20Africa">Show all Sub-Saharan Africa projects</a>
-	<li><a href="projects.php?category=South%20Asia">Show all South Asia projects</a>
-	<li><a href="projects.php?category=Ukraine">Show all Ukraine projects</a>
-	<li><a href="projects.php?category=Global">Show all Global projects</a>
+	<li><a href="projects.php?category=MENA-Iraq">Show all MENA-Iraq projects</a></li>
+	<li><a href="projects.php?category=Southeast%20Asia">Show all Southeast Asia projects</a></li>
+	<li><a href="projects.php?category=Sub-Saharan%20Africa">Show all Sub-Saharan Africa projects</a></li>
+	<li><a href="projects.php?category=South%20Asia">Show all South Asia projects</a></li>
+	<li><a href="projects.php?category=Ukraine">Show all Ukraine projects</a></li>
+	<li><a href="projects.php?category=Global">Show all Global projects</a></li>
+	<li><a href="impromptu.php">Import new impromptu file</a></li>
 </ul>
 
 <?php 
@@ -489,6 +510,18 @@ if (isset($_GET['idproject']) && (!isset($_GET['action']))){
 				$countriestoedit=FALSE;
 			}
 			editcountry($idproject,$countriestoedit);
+			break;
+		case 'addsubawardsform':
+			addsubawardsform($idproject);
+			break;
+		case 'addsubawards':
+			if (isset($_POST['subaward'])){
+				$subawards="";
+				foreach ($_POST['subaward'] as $value){
+					$subawards[]=filter_var($value, FILTER_SANITIZE_NUMBER_INT);
+				}
+			}
+			addsubawards($idproject,$subawards);
 			break;
 	}
 }elseif(isset($_GET['action']) && !isset($_GET['idproject'])){

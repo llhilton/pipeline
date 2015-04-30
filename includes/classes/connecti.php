@@ -315,4 +315,23 @@ class Database{
 		}	
 	
 	}
+	
+	//Get all possible subawards 
+	static function getSubawards(){
+		$connection = Database::getConnection();
+		$query = "SELECT * FROM watson WHERE status!='Award -- Terminated' and shortAwardNumber!='' ORDER BY shortAwardNumber";
+		$items="";
+		$result_obj=$connection->query($query);
+		try{
+			while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+				$items[]=$result;
+			}
+			return($items);
+		}
+		catch(Exception $e){
+			return false;
+		}
+	}
+	
+	
 }
