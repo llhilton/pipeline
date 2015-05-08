@@ -1,9 +1,29 @@
-<h1>Watson Upload</h1>
 <?php
 //Adapted from http://stackoverflow.com/questions/11448307/importing-csv-data-using-php-mysql
 
-require_once('classes/connecti.php');
+//require_once('classes/connecti.php');
 
+
+//Get an array of all the countries.
+function getIdCountries(){
+	$connection = Database::getConnection();
+	
+	$query = "SELECT idcountry, country FROM country";
+	$result_obj="";
+	$items=array();
+	$result_obj=$connection->query($query);
+	try{
+		while($result = $result_obj->fetch_array(MYSQLI_ASSOC)){
+			$items[$result['idcountry']]=$result['country'];
+		}
+		return($items);
+	}
+	catch(Exception $e){
+		return false;
+	}	
+}
+
+//Empty the watson and watson_country tables. 
 function clearwatson(){
 	$connection = Database::getConnection();
 	//Empty watson table
@@ -24,43 +44,68 @@ if (isset($_POST['submit'])) {
 	if (is_uploaded_file($_FILES['filename']['tmp_name'])) {
 		echo "<p>" . "File ". $_FILES['filename']['name'] ." uploaded
  successfully." . "</p>";
-		echo "<h2>Displaying contents:</h2>";
-		readfile($_FILES['filename']['tmp_name']);
 	}
 
 	//Clear old watson data
 	clearwatson();
 	
+	//Get an array of all the countries
+	$allcountries=getIdCountries();
+	//print_r($allcountries);
+	
 	$connection=Database::getConnection();
 	//Import uploaded file to Database
 	
 	$handle = fopen($_FILES['filename']['tmp_name'], "r");
-	$i=0; //Used to filter out the heading row.
+	$i=0; //Used to filter out the heading rows
 	while (($data = fgetcsv($handle, 2000, ",")) !== FALSE) {
-		//$import="INSERT into importing(text,number)values('$data[0]','$data[1]')";
-		if ($i<>0){	
-			$countriesarray=explode('.',$data[7]);
-			
-			if ($data[1]>0 && $data[1]<99999){
+		list(,$shortawardnumber,$title,$budget,$status,$startdate,$enddate,$countries)=$data;
+		$budget=filter_var($budget, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+		if ($i>1){	
+			$countriesarray=explode(',',$countries);
+			//print_r($countriesarray);
+			//echo "<br>";
+			$title=$connection->real_escape_string($title);
+			if ($shortawardnumber>1000 && $shortawardnumber<99999){
 				$query="INSERT INTO watson ";
 				$query .= "VALUES (DEFAULT, ";
-				$query.="'".$data[1]."', ";
-				$query.="'".$data[2]."', ";
-				$query.="'".$data[3]."', ";
-				$query.="'".$data[4]."', ";
-				$query.="'".$data[5]."', ";
-				$query.="'".$data[6]."'";
+				$query.="'".$shortawardnumber."', ";
+				$query.="'".$title."', ";
+				$query.="'".$budget."', ";
+				$query.="'".$status."', ";
+				$query.="'".date("Y-m-d", strtotime($startdate))."', ";
+				$query.="'".date("Y-m-d", strtotime($enddate))."'";
 				$query.=")";
 				
-				echo $query.'<br>';
-				/*if (!$connection->query($query)){
-					echo "Error :" .$query . "<br>" . $connection->error;
-				}*/
+				$result_obj='';
+				$result_obj=$connection->query($query);
+				try{
+					$idwatson=$connection->insert_id;
+				}
+				catch(Exception $e){
+					return false;
+				}
+				
+				//Add the countries to watson
 				foreach ($countriesarray as $country){
-					//first need to get the idcountry for the country, then
-					//add it to the watson_country table.
-					$query="INSERT INTO watson_country VALUES (DEFAULT, ";
-					//$query.="'".$country
+					$country=trim($country);
+					//echo $country;
+					if ($country<>""){
+						$countryconnection=Database::getConnection();
+						$idcountry="";
+						//first need to get the idcountry for the country
+						$idcountry = array_search($country,$allcountries);
+						//echo $idcountry."<br>";
+						
+						//echo "hi".$idcountry."<br>";
+						//add it to the watson_country table.
+						$countryquery="INSERT INTO watson_country VALUES (DEFAULT, ".$idwatson.", ".$idcountry.")";
+						//echo $countryquery."<br>";
+						
+						if (!$countryconnection->query($countryquery)){
+							echo "Error :" .$countryquery . "<br>" . $countryconnection->error."<br>".$country;
+						}
+					}
 				}
 			}
 			
@@ -70,14 +115,15 @@ if (isset($_POST['submit'])) {
 
 	fclose($handle);
 
-	print "Import done";
+	echo "Import done";
 
 	//view upload form
 } else {
-	print "Upload new csv of watson by browsing to file and clicking on Upload<br />\n";
-	print "<form enctype='multipart/form-data' action='watson.php' method='post'>";
-	print "File name to import:<br />\n";
-	print "<input size='50' type='file' name='filename'><br />\n";
-	print "<input type='submit' name='submit' value='Upload'></form>";
+	echo "Upload new csv of watson by browsing to file and clicking on Upload<br />\n";
+	echo "<form enctype='multipart/form-data' action='watson.php' method='post'>";
+	echo "File name to import:<br />\n";
+	echo "<input size='50' type='file' name='filename'><br />\n";
+	echo "<input type='submit' name='submit' value='Upload'></form><br> \n";
+	echo "Please be patient after submitting, as it may take a while to import the data.";
 
 }
