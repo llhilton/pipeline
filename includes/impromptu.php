@@ -1,8 +1,8 @@
-<h1>Impromptu Upload</h1>
+<h2>Impromptu Upload</h2>
 <?php
 //Adapted from http://stackoverflow.com/questions/11448307/importing-csv-data-using-php-mysql
 
-require_once('classes/connecti.php');
+require_once('classes/Database.php');
 
 function impromptutoold(){
 	$connection = Database::getConnection();

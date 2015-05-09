@@ -39,6 +39,20 @@ footer{
 	padding-left: 13em;
 }
 
+.clearfloat{
+	clear: both;
+}
+
+.impromptuCurrent{
+	float: left;
+	display: block;
+	margin-right: 1em;
+}
+
+.impromptuOld{
+	display: block;
+}
+
 /*Nav layout adapted from http://cssmenumaker.com/menu/vertical-massive-blue */
 nav {
   background: #333;
@@ -46,8 +60,7 @@ nav {
   margin: 0;
   padding: 0;
   width: 12em;
-  float: left;
-  
+  float: left; 
 }
 
 .navhead{
